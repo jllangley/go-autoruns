@@ -1,32 +1,30 @@
 import os
 import subprocess
 import datetime
-import azure.storage.blob as azure_blob
+import socket
+import requests
 
 def main():
     # Execute the command
     custom_file_name = generate_custom_filename()
     with open(custom_file_name, 'wb') as output_file:
-        subprocess.run(["./autorunsc.exe", "-x"], stdout=output_file)
+        subprocess.run(["./tools/autorunsc.exe", "-x"], stdout=output_file)
 
     # Upload to Azure Blob Storage
-    sas_token = "sas-token"
-    blob_storage_url = "blob-url"
-    upload_to_azure(custom_file_name, blob_storage_url, sas_token)
+    sas_token = "sas_token"
+    storage_account = "storage_name"
+    container_name = "container_name"
+    upload_to_azure(custom_file_name, storage_account, sas_token, container_name)
 
 
 def generate_custom_filename():
-    hostname = os.uname()[1]
+    hostname = socket.gethostname()
     current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-    return f"{hostname}_autoruns_{current_date}.xml"
+    return f"{hostname}-{current_date}_autoruns.csv"
 
 
-def upload_to_azure(file_path, blob_storage_url, sas_token):
-    blob_service_client = azure_blob.BlobServiceClient(account_url=blob_storage_url, credential=sas_token)
-    blob_client = blob_service_client.get_blob_client(container="your-container-name", blob=file_path)
-
-    with open(file_path, "rb") as data:
-        blob_client.upload_blob(data)
+def upload_to_azure(blob_name, storage_account, sas_token, container_name):
+    requests.put(f"https://{storage_account}.blob.core.windows.net/{container_name}/{blob_name}?{sas_token}", data=open(f"{blob_name}", "rb"), headers={"x-ms-blob-type": "BlockBlob"})
 
     print("File uploaded successfully.")
 
