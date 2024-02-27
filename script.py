@@ -5,22 +5,35 @@ import socket
 import requests
 
 def main():
-    # Execute the command
+    # Execute the Autoruns
     custom_file_name = generate_custom_filename()
-    with open(custom_file_name, 'wb') as output_file:
-        subprocess.run(["./tools/autorunsc.exe", "-x"], stdout=output_file)
+    autoruns_file_name = custom_file_name + "_autoruns.csv"
+    with open(autoruns_file_name, 'wb') as output_file:
+        subprocess.run(["./tools/autorunsc.exe","-accepteula","-nobanner","-a","*","-h","-s","-t","-c"], stdout=output_file)
 
-    # Upload to Azure Blob Storage
-    sas_token = "sas_token"
-    storage_account = "storage_name"
-    container_name = "container_name"
-    upload_to_azure(custom_file_name, storage_account, sas_token, container_name)
-
+    # Azure Blob Storage Config
+    sas_token = "sas_toek"
+    storage_account = "storage_account"
+    container_name = "container"
+    #Upload Autoruns to blob Storage
+    upload_to_azure(autoruns_file_name, storage_account, sas_token, container_name)
+    
+    # Execute Sysinternals netstat equivalent
+    netstat_file_name = custom_file_name + "_netstat.csv"
+    with open(netstat_file_name, 'wb') as output_file:
+        subprocess.run(["./tools/tcpvcon.exe", "-accepteula", "-a", "-n","-c"], stdout=output_file)
+    upload_to_azure(netstat_file_name, storage_account, sas_token, container_name)
+    
+    # Execute Sysinfo 
+    sysinfo_file_name = custom_file_name + "_sysinfo.csv"
+    with open(sysinfo_file_name, 'wb') as output_file:
+        subprocess.run(["systeminfo", "/FO", "CSV"], stdout=output_file)
+    upload_to_azure(sysinfo_file_name, storage_account, sas_token, container_name)
 
 def generate_custom_filename():
     hostname = socket.gethostname()
     current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-    return f"{hostname}-{current_date}_autoruns.csv"
+    return f"{hostname}-{current_date}"
 
 
 def upload_to_azure(blob_name, storage_account, sas_token, container_name):
